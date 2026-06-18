@@ -1,6 +1,6 @@
-# 공시톡톡 (gongsitoktok) Assistant Backend
+# 공시톡톡 Backend (Spring)
 
-> **공시 분석 어시스턴트 백엔드** — 사용자가 기업 상세 페이지에서 챗봇으로 공시·재무·거시 질의응답.
+> **공시톡톡 백엔드** — 사용자가 기업 상세 페이지에서 챗봇으로 공시·재무·거시 질의응답.
 
 `Spring Boot 3.5` · `Java 21 (Virtual Threads)` · `PostgreSQL` · `WebClient ↔ FastAPI` · `JWT + OAuth2`
 
@@ -52,7 +52,6 @@ flowchart TB
 | FastAPI | FastAPI + Chroma | AI 추론, 벡터 검색, 외부 API |
 | 외부 API | OAuth · DART · ECOS | 인증 위탁 · 재무 · 거시 지표 |
 
-> Spring ↔ FastAPI 는 단일 **동기 JSON** 호출 (v2.0). SSE 미사용. 자세한 사유는 `archive/연동명세서_산출물.md` 참조.
 
 ---
 

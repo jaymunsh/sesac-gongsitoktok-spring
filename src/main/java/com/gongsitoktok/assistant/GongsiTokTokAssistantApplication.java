@@ -1,5 +1,5 @@
 /*
- * 상대 경로: src/main/java/com/gongsitoktok/assistant/GongsiTalktalkAssistantApplication.java
+ * 상대 경로: src/main/java/com/gongsitoktok/assistant/GongsiTokTokkAssistantApplication.java
  */
 package com.gongsitoktok.assistant;
 
@@ -25,7 +25,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  */
 @SpringBootApplication
 @EnableAsync
-public class GongsiTalktalkAssistantApplication {
+public class GongsiTokTokAssistantApplication {
 
     /**
      * 애플리케이션 부팅 진입점.
@@ -33,6 +33,6 @@ public class GongsiTalktalkAssistantApplication {
      * @param args JVM args (Gradle bootRun 의 {@code -Djdk.tracePinnedThreads=short} 포함)
      */
     public static void main(String[] args) {
-        SpringApplication.run(GongsiTalktalkAssistantApplication.class, args);
+        SpringApplication.run(GongsiTokTokAssistantApplication.class, args);
     }
 }

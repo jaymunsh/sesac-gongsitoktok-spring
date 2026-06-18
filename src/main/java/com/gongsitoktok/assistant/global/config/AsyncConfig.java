@@ -3,6 +3,7 @@
  */
 package com.gongsitoktok.assistant.global.config;
 
+import com.gongsitoktok.assistant.GongsiTokTokAssistantApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.AsyncTaskExecutor;
@@ -27,7 +28,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * 프록시가 우회되어 둘 다 동작하지 않는다. 따라서 {@code ChatPersistenceService} 는 반드시 별도 빈으로 분리되어 있어야 하며,
  * 본 설정 클래스는 그 풀을 제공하는 역할만 담당한다.</p>
  *
- * @see com.gongsitoktok.assistant.GongsiTalktalkAssistantApplication
+ * @see GongsiTokTokAssistantApplication
  */
 @Configuration
 @EnableAsync

@@ -105,8 +105,12 @@ public class RefreshTokenService {
 
         // 정상: 기존 revoke + 새 발급
         stored.revoke(now);
-        String newRaw = issue(stored.getUser(), userAgent);
-        return new RotateResult(newRaw, stored.getUser());
+        User owner = stored.getUser();
+        String newRaw = issue(owner, userAgent);
+        // ⚠️ owner 는 @ManyToOne(LAZY) 프록시. 트랜잭션 종료 후 (AuthController) 에서 owner.getUserId() 등을 호출하면
+        // OSIV=false 설정상 LazyInitializationException 이 떨어진다.
+        // 따라서 트랜잭션 안에서 미리 필요한 필드를 추출해 primitive 만 들고 나간다.
+        return new RotateResult(newRaw, owner.getUserSeq(), owner.getUserId(), owner.getOauthService());
     }
 
     /**
@@ -157,9 +161,20 @@ public class RefreshTokenService {
     /**
      * 회전 결과.
      *
-     * @param newRawToken 클라이언트 쿠키에 실을 새 raw 토큰
-     * @param owner       검증된 소유 사용자
+     * <p>{@code User} 엔티티를 직접 들고 다니지 않는다 — {@link #rotate(String, String)} 의 트랜잭션이 종료되면
+     * lazy 프록시 접근 시 {@code LazyInitializationException} 이 떨어지기 때문이다 (OSIV=false 설정 기준).
+     * 토큰 발급에 필요한 사용자 식별 필드를 트랜잭션 안에서 미리 추출해 primitive 로 넘긴다.</p>
+     *
+     * @param newRawToken  클라이언트 쿠키에 실을 새 raw 토큰
+     * @param userSeq      소유 사용자 PK
+     * @param userId       소유 사용자 노출 ID (JWT custom claim 용)
+     * @param oauthService 소유 사용자 가입 경로 (JWT custom claim 용)
      */
-    public record RotateResult(String newRawToken, User owner) {
+    public record RotateResult(
+            String newRawToken,
+            Long userSeq,
+            String userId,
+            com.gongsitoktok.assistant.user.entity.OauthService oauthService
+    ) {
     }
 }

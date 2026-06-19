@@ -12,25 +12,45 @@ import java.util.Optional;
 /**
  * 기업 리포지토리.
  *
- * <h3>nullable param 회피</h3>
- * <p>이전 버전은 단일 {@code @Query} 안에서 {@code (:corpCode IS NULL OR ...)} 분기로 동적 쿼리를 구성했으나,
- * PostgreSQL JDBC 가 {@code null} 파라미터를 {@code bytea} 로 추론해 {@code lower(bytea)} 함수를 찾다가
- * {@code 42883} 오류로 떨어지는 문제가 있었다. 동적 쿼리는 서비스 레이어에서 4 케이스 분기 호출로 처리하고,
- * 본 리포지토리는 단순 derived query 만 노출한다.</p>
+ * <h3>공개 vs 운영자 조회 분리</h3>
+ * <ul>
+ *     <li>공개 조회({@code /companies/**}, 채팅방 생성) — {@code isActive=true} 만 — {@code *AndIsActiveTrue} suffix 메서드 사용</li>
+ *     <li>운영자 조회({@code /internal/**}) — 활성/비활성 무관 — {@link #findByCorpCode(String)} 사용 (비활성 기업의 재활성화 작업 위함)</li>
+ * </ul>
  *
- * <p>외부 노출 키는 항상 {@code corpCode} 이며, FK 참조는 항상 {@code companySeq} 다.</p>
+ * <h3>nullable param 회피</h3>
+ * <p>JPQL 안에서 {@code (:param IS NULL OR ...)} 패턴을 쓰면 PostgreSQL JDBC 가 {@code null} 파라미터를 {@code bytea} 로
+ * 추론해 {@code lower(bytea) does not exist} 오류를 일으킨다. 본 리포지토리는 단순 derived query 만 노출하고
+ * 동적 분기는 서비스 레이어에서 4 케이스 호출로 처리한다.</p>
  */
 public interface CompanyRepository extends JpaRepository<Company, Long> {
 
+    // ===== 운영자 조회 (활성 무관) =====
+
     /**
-     * corpCode 단건 조회 (§4-7, §4-9, §4-14 upsert 매칭).
+     * corpCode 단건 조회 — 활성 무관. 운영자 upsert / 재활성화 처리에서 사용 (§4-14).
      */
     Optional<Company> findByCorpCode(String corpCode);
 
+    // ===== 공개 조회 (활성만) =====
+
     /**
-     * corpName 부분 일치(대소문자 무시) + 이름순 정렬 (§4-8).
-     *
-     * <p>Spring Data JPA 가 메서드 이름에서 SQL 을 생성하므로 빈 파라미터를 보낼 일이 없다.</p>
+     * 활성 corpCode 단건 조회 — 공개 endpoint({@code /companies/{corpCode}}, 채팅방 생성) 에서 사용.
      */
-    List<Company> findByCorpNameContainingIgnoreCaseOrderByCorpNameAsc(String corpName);
+    Optional<Company> findByCorpCodeAndIsActiveTrue(String corpCode);
+
+    /**
+     * 활성 corpName 부분 일치(대소문자 무시) + 이름순 (§4-8).
+     */
+    List<Company> findByCorpNameContainingIgnoreCaseAndIsActiveTrueOrderByCorpNameAsc(String corpName);
+
+    /**
+     * 활성 전체 조회 — 이름순.
+     */
+    List<Company> findAllByIsActiveTrueOrderByCorpNameAsc();
+
+    /**
+     * 활성 기업 개수 — 메인페이지 'N대 기업' 표시용.
+     */
+    long countByIsActiveTrue();
 }

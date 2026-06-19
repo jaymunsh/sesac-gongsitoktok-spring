@@ -30,6 +30,11 @@ import java.time.LocalDateTime;
  *     <li>{@link #companySeq} — 내부 불변 PK. {@code tb_chat_room} 의 FK 참조 대상. 외부 노출 금지.</li>
  *     <li>{@link #corpCode}   — DART 공식 기업 고유번호. 외부 노출 비즈니스 키 + 운영자 upsert 매칭 키.</li>
  * </ul>
+ *
+ * <h3>활성/비활성 정책</h3>
+ * <p>{@link #isActive} 가 {@code false} 인 기업은 공개 조회({@code /companies/**})·메인페이지 카운트·메인 노출 목록에서
+ * 모두 제외된다. 운영적으로 문제가 생긴 기업을 임시 차단하는 용도. 다만 운영자 endpoint({@code /internal/**}) 와
+ * 기존 채팅 이력은 그대로 유지되어 사후 활성화·감사에 영향이 없다.</p>
  */
 @Entity
 @Table(
@@ -66,6 +71,13 @@ public class Company {
     @Column(name = "summary_content", columnDefinition = "TEXT")
     private String summaryContent;
 
+    /**
+     * 활성/비활성 상태. {@code false} 면 공개 조회·메인 노출·신규 채팅방 생성에서 제외.
+     * <p>기존 row 에 컬럼을 안전하게 추가하기 위해 {@code DEFAULT true} 박음.</p>
+     */
+    @Column(name = "is_active", nullable = false, columnDefinition = "boolean default true")
+    private boolean isActive;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -88,15 +100,18 @@ public class Company {
         c.corpName = corpName;
         c.logoUrl = logoUrl;
         c.summaryContent = summaryContent;
+        c.isActive = true;
         return c;
     }
 
     /**
-     * 부분 갱신 (true partial update). 인자로 null 이 들어오면 해당 필드는 변경하지 않는다.
+     * 부분 갱신 (true partial update). 인자로 {@code null} 이 들어오면 해당 필드는 변경하지 않는다.
      *
      * <p>{@code corpCode} 는 비즈니스 키로 변경 불가하므로 본 메서드에서 다루지 않는다.</p>
+     *
+     * @param isActive {@code null} 이면 변경 안 함. {@code true}/{@code false} 면 그대로 반영.
      */
-    public void patch(String corpName, String logoUrl, String summaryContent) {
+    public void patch(String corpName, String logoUrl, String summaryContent, Boolean isActive) {
         if (corpName != null) {
             this.corpName = corpName;
         }
@@ -105,6 +120,9 @@ public class Company {
         }
         if (summaryContent != null) {
             this.summaryContent = summaryContent;
+        }
+        if (isActive != null) {
+            this.isActive = isActive;
         }
     }
 }

@@ -68,6 +68,15 @@ public class QaHistory {
     @Column(name = "macro_snapshot", columnDefinition = "TEXT")
     private String macroSnapshot;
 
+    /**
+     * 답변 신뢰도 — FastAPI {@code verification.groundedScore} (0.0 ~ 1.0, nullable).
+     *
+     * <p>{@code DOUBLE PRECISION} 으로 매핑. 검증을 우회한 응답(예: smalltalk·out_of_scope) 은 {@code null}.</p>
+     * <p>UI 에서는 "정확도" 라벨로 노출되며 출처 모달의 우측 하단 뱃지로 표기.</p>
+     */
+    @Column(name = "grounded_score")
+    private Double groundedScore;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -80,15 +89,17 @@ public class QaHistory {
      * @param answer         FastAPI 답변 (TEXT, NOT NULL)
      * @param sourceContent  인용 근거 텍스트 (nullable)
      * @param macroSnapshot  거시 지표 스냅샷 (nullable)
+     * @param groundedScore  답변 신뢰도 0.0~1.0 (nullable)
      */
     public static QaHistory record(ChatRoom chatRoom, String question, String answer,
-                                   String sourceContent, String macroSnapshot) {
+                                   String sourceContent, String macroSnapshot, Double groundedScore) {
         QaHistory q = new QaHistory();
         q.chatRoom = chatRoom;
         q.question = question;
         q.answer = answer;
         q.sourceContent = sourceContent;
         q.macroSnapshot = macroSnapshot;
+        q.groundedScore = groundedScore;
         return q;
     }
 }

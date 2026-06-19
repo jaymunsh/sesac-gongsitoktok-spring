@@ -54,12 +54,16 @@ public class ChatPersistenceService {
                 log.warn("영속화 시 방을 찾지 못함 — roomId={}", roomId);
                 return;
             }
+            Double groundedScore = response.verification() == null
+                    ? null
+                    : response.verification().groundedScore();
             QaHistory entity = QaHistory.record(
                     room,
                     question,
                     response.answerText(),
                     response.sourceContent(),
-                    response.macroSnapshot()
+                    response.macroSnapshot(),
+                    groundedScore
             );
             qaHistoryRepository.save(entity);
             // TODO(monitoring): Counter("chat.persist.ok") 등록

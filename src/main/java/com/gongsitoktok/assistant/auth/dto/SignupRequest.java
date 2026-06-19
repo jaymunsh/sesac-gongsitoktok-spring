@@ -18,13 +18,13 @@ import jakarta.validation.constraints.Size;
  *     <li>비밀번호 재입력 확인({@code passwordCheck}) 은 프론트엔드 책임. 서버는 단일 {@link #password} 만 수신.</li>
  * </ul>
  *
- * @param userId   영문 소문자 + 숫자 4~20자 (서비스에서 정규식 검증)
+ * @param userId   영문 소문자/숫자만 사용, 4~20자 (혼합·단독 모두 허용 — 서비스에서 정규식 검증)
  * @param password 8자 이상 + 대/소문자·숫자·특수문자 각 1개 이상 (서비스에서 정책 검증)
  * @param nickname 표시명
  */
 @Schema(description = "로컬 회원가입 요청")
 public record SignupRequest(
-        @Schema(description = "로그인 ID (영문 소문자 + 숫자 4~20자)", example = "alice01")
+        @Schema(description = "로그인 ID — 영문 소문자/숫자만 사용 가능, 4~20자 (혼합·단독 모두 허용)", example = "alice01")
         @NotBlank(message = "userId 는 필수입니다.")
         @Size(min = 4, max = 20, message = "userId 는 4~20자여야 합니다.")
         String userId,

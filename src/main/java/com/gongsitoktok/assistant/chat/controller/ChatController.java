@@ -10,7 +10,6 @@ import com.gongsitoktok.assistant.chat.dto.ChatMessagesResponse;
 import com.gongsitoktok.assistant.chat.dto.ChatResponse;
 import com.gongsitoktok.assistant.chat.dto.ChatRoomListItemResponse;
 import com.gongsitoktok.assistant.chat.dto.ContinueRequest;
-import com.gongsitoktok.assistant.chat.dto.HideResponse;
 import com.gongsitoktok.assistant.chat.dto.fastapi.CompanyContext;
 import com.gongsitoktok.assistant.chat.dto.fastapi.FastApiChatRequest;
 import com.gongsitoktok.assistant.chat.dto.fastapi.FastApiChatResponse;
@@ -116,8 +115,8 @@ public class ChatController {
         return ChatResponse.from(roomId, fastResp);
     }
 
-    @Operation(summary = "유저의 대화방 목록 조회",
-            description = "사이드바용. isActive=true 만 + lastActiveAt 내림차순.")
+    @Operation(summary = "마이페이지 — 만료된 대화방 목록",
+            description = "isActive=false (만료 = closed) 만 lastActiveAt 내림차순. 호출 시점에 만료 임계 초과한 활성 방은 자동 close 처리되어 목록에 합류.")
     @ApiResponse(responseCode = "200", description = "목록 반환")
     @GetMapping("/rooms")
     public List<ChatRoomListItemResponse> rooms(@AuthenticationPrincipal UserPrincipal principal) {
@@ -125,7 +124,7 @@ public class ChatController {
     }
 
     @Operation(summary = "특정 대화방 내용 조회 (타임라인)",
-            description = "방 메타 + Q&A 시간순 묶음.")
+            description = "방 메타 + Q&A 시간순 묶음. 활성·만료 무관 본인 소유면 열람 가능 (마이페이지의 기록 조회 용도).")
     @ApiResponse(responseCode = "200", description = "타임라인 반환")
     @ApiResponse(responseCode = "404", description = "CHAT_ROOM_NOT_FOUND")
     @GetMapping("/room/{roomId}/messages")
@@ -136,19 +135,9 @@ public class ChatController {
         return chatRoomService.timeline(roomId, principal.userSeq());
     }
 
-    @Operation(summary = "대화방 숨김 (Soft Delete)",
-            description = "isActive=false + hiddenAt 기록. 멱등 처리.")
-    @ApiResponse(responseCode = "200", description = "숨김 완료")
-    @ApiResponse(responseCode = "404", description = "CHAT_ROOM_NOT_FOUND")
-    @PostMapping("/room/{roomId}/hide")
-    public HideResponse hide(
-            @AuthenticationPrincipal UserPrincipal principal,
-            @PathVariable Long roomId
-    ) {
-        return chatRoomService.hide(roomId, principal.userSeq());
-    }
-
     // ===== 내부 헬퍼 =====
+    // (v2 기획 변경: /chat/room/{roomId}/hide endpoint 제거.
+    //  isActive 의미가 "세션 활성 여부" 로 재정의되어 사용자 hide 개념이 자연 소멸.)
 
     /**
      * FastAPI 호출 + 결과 동기 대기. null 응답은 방어적으로 UPSTREAM_ERROR 변환.

@@ -39,7 +39,7 @@ public enum ErrorCode {
 
     // ===== 회원가입·정책 =====
     PASSWORD_POLICY_VIOLATION(HttpStatus.BAD_REQUEST, "비밀번호 정책(8자 이상, 대/소문자·숫자·특수문자 각 1개 이상)을 만족하지 않습니다."),
-    INVALID_USER_ID_FORMAT(HttpStatus.BAD_REQUEST, "아이디는 영문 소문자와 숫자 4~20자로만 구성되어야 합니다."),
+    INVALID_USER_ID_FORMAT(HttpStatus.BAD_REQUEST, "아이디는 영문 소문자와 숫자만 사용해 4~20자로 입력해 주세요."),
     USER_ID_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
 
     // ===== Refresh Token =====

@@ -27,6 +27,8 @@ public record ChatMessagesResponse(
 
     /**
      * 타임라인 단일 turn.
+     *
+     * @param groundedScore  답변 신뢰도 0.0~1.0 (nullable). 프론트의 출처 모달 우측 하단 "정확도" 뱃지에 사용
      */
     @Schema(description = "Q&A 한 턴")
     public record Item(
@@ -34,6 +36,7 @@ public record ChatMessagesResponse(
             String answer,
             String sourceContent,
             String macroSnapshot,
+            Double groundedScore,
             LocalDateTime createdAt
     ) {
         public static Item from(QaHistory q) {
@@ -42,6 +45,7 @@ public record ChatMessagesResponse(
                     q.getAnswer(),
                     q.getSourceContent(),
                     q.getMacroSnapshot(),
+                    q.getGroundedScore(),
                     q.getCreatedAt()
             );
         }

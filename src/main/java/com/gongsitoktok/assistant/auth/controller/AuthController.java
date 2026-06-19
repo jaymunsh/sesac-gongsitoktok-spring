@@ -106,10 +106,11 @@ public class AuthController {
             @RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent
     ) {
         RotateResult rotated = refreshTokenService.rotate(rawRefreshToken, userAgent);
+        // RotateResult 는 트랜잭션 안에서 미리 추출한 primitive 만 보유. lazy 접근 사고 차단.
         String newAccess = jwtTokenProvider.issueAccessToken(
-                rotated.owner().getUserSeq(),
-                rotated.owner().getUserId(),
-                rotated.owner().getOauthService());
+                rotated.userSeq(),
+                rotated.userId(),
+                rotated.oauthService());
         long accessExp = parseAccessExp(newAccess);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie(rotated.newRawToken(), refreshValiditySeconds).toString())

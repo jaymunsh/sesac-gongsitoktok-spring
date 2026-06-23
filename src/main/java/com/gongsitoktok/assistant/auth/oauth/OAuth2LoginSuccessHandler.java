@@ -64,6 +64,12 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     @Value("${refresh-token.validity-seconds}")
     private long refreshValiditySeconds;
 
+    /**
+     * Refresh 쿠키 Secure 플래그 — AuthController 와 동일 정책. dev=false, prod=true.
+     */
+    @Value("${refresh-token.cookie-secure}")
+    private boolean refreshCookieSecure;
+
     @Override
     @Transactional
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -81,7 +87,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         // Refresh Token 은 쿠키로
         ResponseCookie cookie = ResponseCookie.from(refreshCookieName, tokens.refreshTokenRaw())
                 .httpOnly(true)
-                .secure(true)
+                .secure(refreshCookieSecure)
                 .sameSite("Strict")
                 .path(refreshCookiePath)
                 .maxAge(Duration.ofSeconds(refreshValiditySeconds))

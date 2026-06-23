@@ -19,6 +19,13 @@ spring:
       hibernate:
         format_sql: true
 
+# Refresh 쿠키 Secure 플래그 — dev 한정 false.
+# 이유: 자기 PC 외 다른 기기(IP 주소로 접속) 시연 시 HTTP + Secure 조합이 쿠키 저장 자체를 거부.
+# localhost 는 브라우저 보안 예외로 HTTP+Secure 동작하나, 192.168.x.x 같은 IP 는 예외 없음.
+# 운영 환경은 HTTPS + 도메인 사용이라 application.yml 기본값(true) 그대로 유지.
+refresh-token:
+  cookie-secure: false
+
 logging:
   level:
     root: INFO

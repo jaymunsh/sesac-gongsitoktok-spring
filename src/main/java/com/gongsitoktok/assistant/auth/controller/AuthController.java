@@ -69,6 +69,13 @@ public class AuthController {
     @Value("${refresh-token.validity-seconds}")
     private long refreshValiditySeconds;
 
+    /**
+     * Refresh 쿠키 Secure 플래그 — 운영 기본 true (HTTPS 강제), dev profile 에서 false 로 오버라이드.
+     * IP 주소(192.168.x.x) + HTTP 환경에서는 Secure 쿠키가 저장 자체 거부되어 새로고침 시 로그인 풀림.
+     */
+    @Value("${refresh-token.cookie-secure}")
+    private boolean refreshCookieSecure;
+
     @Operation(summary = "회원가입 (로컬)", description = "userId 정규식과 비밀번호 정책을 서버에서 강제 검증한다.")
     @ApiResponse(responseCode = "201", description = "가입 성공")
     @ApiResponse(responseCode = "400", description = "INVALID_USER_ID_FORMAT / PASSWORD_POLICY_VIOLATION")
@@ -150,7 +157,7 @@ public class AuthController {
     private ResponseCookie refreshCookie(String value, long maxAgeSeconds) {
         return ResponseCookie.from(refreshCookieName, value == null ? "" : value)
                 .httpOnly(true)
-                .secure(true)
+                .secure(refreshCookieSecure)
                 .sameSite("Strict")
                 .path(refreshCookiePath)
                 .maxAge(Duration.ofSeconds(maxAgeSeconds))

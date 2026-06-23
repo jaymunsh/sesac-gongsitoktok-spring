@@ -49,6 +49,10 @@ refresh-token:
   validity-seconds: 1209600                    # 14일 (60*60*24*14)
   cookie-name: refreshToken
   cookie-path: /api/v1/auth
+  # 운영 기본값 true — HTTPS 환경에서만 쿠키 전송. dev profile 에서 false 로 오버라이드.
+  # IP 주소(192.168.x.x) + HTTP 환경에서는 Secure 쿠키가 저장 자체 거부되어 새로고침 시 로그인 풀림.
+  # localhost 는 브라우저 보안 예외로 HTTP+Secure 도 동작하나, IP 는 예외 없음.
+  cookie-secure: ${REFRESH_COOKIE_SECURE:true}
 
 # ===== CORS =====
 app:

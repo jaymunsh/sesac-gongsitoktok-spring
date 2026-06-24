@@ -541,7 +541,7 @@ flowchart LR
             <li><strong>사전요약 트랙</strong> — <code>summary_&lt;corp&gt;</code> 1,188 요약, 빌드때 1회·질의땐 꺼내쓰기. corpus 폴백 보험</li>
             <li><strong>정형재무 결합</strong> — DART <code>fnlttSinglAcnt</code> 정확수치 + DART 원문 링크</li>
             <li><strong>거시 결합</strong> — ECOS 환율·금리·국고채·KOSPI + 날짜 SQLite 캐시</li>
-            <li><strong>3계층 eval</strong> — ①검색(무료·결정적, 11/11 hit@5 100%, MRR 0.923) ②행동(6/6) ③회귀 골든(12/12)</li>
+            <li><strong>3계층 eval</strong> — ①검색(무료·결정적, 13/13 hit@5 100%, MRR 0.933) ②행동(6/6) ③회귀 골든(16/16) <span class="text-xs text-slate-500">· 2026-06-24 기준</span></li>
             <li><strong>Logfire 콘솔 관측성</strong> + <code>X-Trace-Id</code> 端-to-端 추적</li>
           </ul>
         </div>
@@ -590,7 +590,7 @@ npm install &amp;&amp; npm run dev
         <p class="text-sm m-0">AI 파트(gongsitoktok-pydantic) 검증은 <strong>인프로세스</strong>로 돌릴 수 있습니다 — 서버 기동 불필요.
           <code>PYTHONPATH=. .venv/bin/python -m eval.eval_retrieval</code> (검색·무료·결정적) ·
           <code>... -m eval.eval_chat</code> (행동) ·
-          <code>... -m eval.run_golden_inproc</code> (회귀 골든셋 14건). 자세한 기준·결과는 <a href="#ch-8-9">§8.9 3계층 eval</a>.</p>
+          <code>... -m eval.run_golden_inproc</code> (회귀 골든셋 16건, 2026-06-24 기준). 자세한 기준·결과는 <a href="#ch-8-8">§8.8 3계층 eval</a>.</p>
       </div>
 
       <h3 id="ch-1-6" class="text-xl font-bold text-slate-900 mt-8 mb-3">1.6 사용자 여정 워크스루 — 처음 보는 사람을 위한 5분 가이드</h3>
@@ -1145,7 +1145,7 @@ flowchart LR
   class RRF hl
           </pre>
       </div>
-      <p class="text-sm text-slate-500"><strong>가짜 하이브리드(v1):</strong> BM25가 벡터 top-20 안에서만 재랭킹 → 정답이 벡터 밖이면 유실. <strong>진짜 하이브리드(v2.0):</strong> 벡터 top-k와 전체 코퍼스 BM25 top-k의 <strong>합집합</strong>을 RRF로 융합 → 한쪽에만 있어도 생존. 검색 평가에서 must 11/11 hit@5(100%) · MRR 0.923 달성.</p>
+      <p class="text-sm text-slate-500"><strong>가짜 하이브리드(v1):</strong> BM25가 벡터 top-20 안에서만 재랭킹 → 정답이 벡터 밖이면 유실. <strong>진짜 하이브리드(v2.0):</strong> 벡터 top-k와 전체 코퍼스 BM25 top-k의 <strong>합집합</strong>을 RRF로 융합 → 한쪽에만 있어도 생존. 검색 평가에서 must <strong>13/13 hit@5(100%) · MRR 0.933</strong> 달성(2026-06-24 갱신, 사업연도 가드 신규 2건 포함).</p>
 
       <!-- ============ 3.4 SQLite ============ -->
       <h3 id="ch-3-4" class="text-xl font-bold text-slate-900 mt-10 mb-3">3.4 SQLite (FastAPI 보조 저장소)</h3>
@@ -2988,9 +2988,14 @@ score[id] = (1-w) / (60 + rank_vec) + w / (60 + rank_bm25)
         <p class="text-sm m-0">초기 v2에선 RRF 가중을 0.6/0.4(벡터 우대)로 줬더니 "지역별 매출"이 엉뚱한 주주현황을 잡는 버그가 있었음 — 벡터 5개가 BM25 1위보다 높아 <strong>top-5가 순수 벡터</strong>가 됨. 동등 가중(0.5/0.5)로 바꿔 1:1 교차 → 해소. <strong>융합 가중이 한쪽을 묻으면 하이브리드가 아니라 벡터+재랭킹일 뿐.</strong></p>
       </div>
 
+      <div class="callout callout-info">
+        <div class="callout-title">📈 2026-06-24 갱신 — corpus + summary 둘 다 하이브리드 적용</div>
+        <p class="text-sm m-0">초기 v2에선 <strong>하이브리드가 corpus 컬렉션에만</strong> 적용되고 <code>search_summaries</code>는 벡터 단독이었음. "주요 사업의 내용" 같은 섹션 어휘 쿼리에서 사전요약이 엉뚱한 섹션을 응답하는 사고 발견(pydantic §17 #11). <code>af5e28e</code> 커밋에서 <strong>BM25 인덱스 빌더를 컬렉션 공용으로 일반화</strong>해 <code>summary_&lt;corp&gt;</code>에도 동일 하이브리드 적용. corpus와 summary가 같은 검색 정밀도를 공유.</p>
+      </div>
+
       <!-- ============ 8.5 사전요약 트랙 ============ -->
       <h3 id="ch-8-5" class="text-xl font-bold text-slate-900 mt-10 mb-3">8.5 사전요약 트랙 — 비싼 요약은 빌드때 1번</h3>
-      <p>v1은 요약 질문이 들어오면 <strong>매번 corpus에서 실시간 RAG 요약</strong>(우연히 집힌 5청크로). v2.0은 각 공시 섹션을 미리 요약해 <code>summary_&lt;corp&gt;</code> 컬렉션에 저장하고, summary 질문은 그 <strong>완성 요약</strong>을 검색합니다.</p>
+      <p>v1은 요약 질문이 들어오면 <strong>매번 corpus에서 실시간 RAG 요약</strong>(우연히 집힌 5청크로). v2.0은 각 공시 섹션을 미리 요약해 <code>summary_&lt;corp&gt;</code> 컬렉션에 저장하고, summary 질문은 그 <strong>완성 요약</strong>을 <strong>하이브리드 검색</strong>(2026-06-24 갱신, §8.4 참조)으로 찾아옵니다.</p>
 
       <h4 class="text-base font-semibold text-slate-800 mt-5 mb-2">무엇을 기준으로 요약하나 (criteria)</h4>
       <ol>
@@ -3111,33 +3116,46 @@ score[id] = (1-w) / (60 + rank_vec) + w / (60 + rank_bm25)
         <p class="text-sm m-0">에이전트가 citations를 <strong>지어내지 못하게</strong>, 응답 출처는 <strong>코드가 검색한 실제 근거</strong>(<code>citations[:5]</code>)로 고정. v2 개발 초기 "요약이 자기 문장을 citations로 만들어 순환참조" 버그를 잡고 도입한 규칙. <strong>출처를 에이전트에 맡기지 말 것.</strong></p>
       </div>
 
+      <h4 class="text-base font-semibold text-slate-800 mt-5 mb-2">🆕 fiscal_anchor() — 한국 공시 기수↔사업연도 자동 매핑 (2026-06-24)</h4>
+      <p>"제57기말 영업이익" 같은 한국 공시 특유의 기수 표현은 회사별 결산월·창립연도에 따라 사업연도(<code>bsns_year</code>) 매핑이 다릅니다(삼성전자 제57기 = FY2025, 현대자동차 제57기 = FY2024). 하드코딩으로는 회사 추가마다 매핑 테이블 갱신이 필요.</p>
+      <ul>
+        <li><strong>해결</strong>: DART 정형재무 응답에 이미 들어있는 <code>thstrm_nm</code>(예: <code>"제 57 기"</code>)을 활용해 <strong>기수 ↔ 사업연도 매핑을 자동 추출·캐시</strong>(<code>fiscal_anchor()</code>). 회사 추가만으로 매핑 자동 확장 — 코드 변경 0.</li>
+        <li><strong>트리거</strong>: 라우터가 사용자 질문에서 "제N기" 표현을 감지할 때만 힌트 주입. 서력연도(시나리오 H) 질문은 그대로 <code>bsns_year</code> 직접 파싱.</li>
+        <li>관련 시연: <a href="#ch-14">시나리오 I</a> · 회귀 골든 <code>ss-gisu-shares</code></li>
+      </ul>
+
       <!-- ============ 8.8 3계층 eval + 골든셋 기준 ============ -->
       <h3 id="ch-8-8" class="text-xl font-bold text-slate-900 mt-10 mb-3">8.8 3계층 eval — 검색·행동·회귀 골든셋 ★</h3>
       <p>"좋은 eval이 진짜 버그를 잡는다"가 v2 개발의 핵심 경험. 3계층으로 분리해 비용·결정성을 다르게 갖춥니다. <strong>전부 인프로세스 — 서버 기동 불필요.</strong></p>
 
       <table class="report-table">
-        <thead><tr><th>계층</th><th>무엇</th><th>비용</th><th>현재 결과 (v2.0)</th></tr></thead>
+        <thead><tr><th>계층</th><th>무엇</th><th>비용</th><th>현재 결과 (v2.0, 2026-06-24 기준)</th></tr></thead>
         <tbody>
         <tr>
           <td>① <strong>검색</strong> (<code>eval_retrieval.py</code>)</td>
-          <td>정답 청크 회수율 hit@k·MRR — 표파싱·하이브리드·Contextual 직접 측정</td>
+          <td>정답 청크 회수율 hit@k·MRR — 표파싱·하이브리드·Contextual·사업연도 가드 직접 측정</td>
           <td><strong>무료·결정적</strong>(LLM 없음)</td>
-          <td>must <strong>11/11 hit@5(100%)</strong> · MRR <strong>0.923</strong></td>
+          <td>must <strong>13/13 hit@5(100%)</strong> · MRR <strong>0.933</strong></td>
         </tr>
         <tr>
           <td>② <strong>행동</strong> (<code>eval_chat.py</code>)</td>
-          <td>멀티턴·거시결합·표질의·되묻기·스코프비교·숫자신선도</td>
+          <td>멀티턴·거시결합·표질의·되묻기·스코프비교·숫자신선도·기간 한정</td>
           <td>LLM (턴당 푼돈)</td>
           <td><strong>6/6 must + 2 watch</strong></td>
         </tr>
         <tr>
           <td>③ <strong>회귀</strong> (<code>run_golden_inproc.py</code>)</td>
-          <td>14케이스 회귀 스모크 — 인텐트·정확수치·스코프</td>
+          <td>16케이스 회귀 스모크 — 인텐트·정확수치·스코프·사업연도·기수</td>
           <td>LLM</td>
-          <td><strong>12/12 must + 2 watch</strong></td>
+          <td><strong>16/16 must + 2 watch</strong></td>
         </tr>
         </tbody>
       </table>
+
+      <div class="callout callout-tip">
+        <div class="callout-title">📈 06-23 ~ 06-24 갱신 (커밋 <code>8d5da9c</code>·<code>af5e28e</code>)</div>
+        <p class="text-sm m-0">기간 질의(<code>bsns_year</code>)·기수 매핑(<code>fiscal_anchor()</code>)·사전요약 하이브리드 도입으로 신규 케이스가 추가됐고, must 통과율은 모두 100%·회귀 0건 유지. 검색 MRR이 0.923 → <strong>0.933</strong>으로 개선됨(사업연도 필터로 노이즈 감소). 회귀 골든 +2건(<code>ss-fy-financial</code>·<code>ss-gisu-shares</code>) 추가. 자세한 사고·수정 경위는 <a href="https://jaymunsh.github.io/sesac-gongsitoktok-pydantic/AI_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%A2%85%ED%95%A9%EC%84%A4%EB%AA%85%EC%84%9C.html#s17" target="_blank" rel="noopener" class="underline">AI 종합 설명서 §17 트러블슈팅</a> 참조.</p>
+      </div>
 
       <h4 class="text-base font-semibold text-slate-800 mt-5 mb-2">골든셋 — 어떤 기준으로 케이스를 구성하나</h4>
       <p>각 케이스 = <strong>질문(또는 검색쿼리) + 기대(<code>expect</code>) + 중요도(<code>severity</code>)</strong>. JSON 한 줄로 관리.</p>
@@ -3183,9 +3201,9 @@ def evaluate(case, resp):
 # 각 케이스를 handle_chat()에 넣고 evaluate → PASS/FAIL/WATCH 집계 (서버 불필요)</code></pre>
 
       <h4 class="text-base font-semibold text-slate-800 mt-5 mb-2">전체 케이스 목록 (무엇을 검사했나)</h4>
-      <p>실제 검사한 35개 케이스 전부. ✅=must 통과, 🔶=watch(약점·추적용).</p>
+      <p>실제 검사한 케이스 전부. ✅=must 통과, 🔶=watch(약점·추적용), 🆕=2026-06-24 신규 추가.</p>
 
-      <h5 class="font-semibold text-slate-700 mt-4 mb-1">① 회귀 골든 — 14건 · must 12/12</h5>
+      <h5 class="font-semibold text-slate-700 mt-4 mb-1">① 회귀 골든 — 16건 · must 16/16</h5>
       <table class="report-table">
         <thead><tr><th>케이스</th><th>질문</th><th>검사 포인트</th></tr></thead>
         <tbody>
@@ -3196,6 +3214,8 @@ def evaluate(case, resp):
         <tr><td>✅ ss-num-assets</td><td>삼성 자산총계</td><td>566,942,110 / 514,531,948</td></tr>
         <tr><td>🔶 ss-route-business-plain</td><td>삼성 무슨 사업 해?</td><td>'요약' 없는 서술 → summary</td></tr>
         <tr><td>✅ ss-scope-other-company</td><td>SK하이닉스 영업이익</td><td>out_of_scope=true</td></tr>
+        <tr><td>🆕 ss-fy-financial</td><td>삼성 제55기 영업이익 / 2024년 사업보고서</td><td>사업연도 필터(bsns_year=2024) → 6,566,976</td></tr>
+        <tr><td>🆕 ss-gisu-shares</td><td>제57기말 자기주식 / 발행주식총수</td><td>fiscal_anchor()로 기수↔연도 자동 매핑 → 정확수치</td></tr>
         <tr><td>✅ hd-summary-overview</td><td>현대 회사 개요 요약</td><td>intent=summary · verdict≠fail</td></tr>
         <tr><td>✅ hd-summary-business</td><td>현대 사업 내용 요약</td><td>자동차·전기차·제네시스 등 포함</td></tr>
         <tr><td>✅ hd-num-revenue</td><td>현대 연간 매출액</td><td>175,231,153</td></tr>
@@ -3215,17 +3235,18 @@ def evaluate(case, resp):
         <tr><td>✅ table-segment</td><td>삼성 사업부문 어떻게 나뉘어?</td><td>DX·DS·부문 포함(표-인식)</td></tr>
         <tr><td>✅ num-freshness-revenue</td><td>현대 매출액</td><td>숫자 포함(값 미고정)</td></tr>
         <tr><td>✅ smalltalk-thanks</td><td>오 고마워</td><td>intent=smalltalk · 근거없음</td></tr>
-        <tr><td>✅ scope-compare</td><td>삼성 vs SK하이닉스 비교</td><td>out_of_scope=true</td></tr>
+        <tr><td>🆕 ss-period-shares</td><td>삼성 2024년 사업보고서 발행주식총수</td><td>기간 한정(bsns_year)으로 세 트랙 통합 회수</td></tr>
         <tr><td>🔶 clarify-ambiguous</td><td>삼성 이익 얼마야?</td><td>'이익' 모호 → 되묻기(변동 허용)</td></tr>
         <tr><td>🔶 unanswerable-future</td><td>현대 내년 전망치</td><td>미래 전망 환각 대신 한계</td></tr>
         </tbody>
       </table>
+      <p class="text-xs text-slate-500">* <code>scope-compare</code>(삼성 vs SK하이닉스 비교) must 케이스는 06-24 갱신에서 <code>ss-period-shares</code>로 슬롯 교체 — 비교 스코프 가드는 회귀 골든 <code>ss-scope-other-company</code>·<code>hd-scope-other-company</code>에서 이미 커버됨.</p>
 
-      <h5 class="font-semibold text-slate-700 mt-4 mb-1">③ 검색 — 13건 · must 11/11 hit@5(100%)</h5>
+      <h5 class="font-semibold text-slate-700 mt-4 mb-1">③ 검색 — 13건 · must 13/13 hit@5(100%) · MRR 0.933</h5>
       <table class="report-table">
         <thead><tr><th>케이스</th><th>검색쿼리</th><th>정답 회수 기대</th></tr></thead>
         <tbody>
-        <tr><td>🔶 ss-ret-income-revenue</td><td>연결 손익계산서 매출액</td><td>300,870,903 / 손익계산서</td></tr>
+        <tr><td>✅ ss-ret-income-revenue</td><td>연결 손익계산서 매출액</td><td>300,870,903 / 손익계산서</td></tr>
         <tr><td>✅ ss-ret-segment</td><td>사업부문별 매출 DX DS</td><td>DX 부문 / DS 부문 / 부문별</td></tr>
         <tr><td>✅ ss-ret-business</td><td>주요 사업 메모리 반도체</td><td>DRAM / NAND / 메모리</td></tr>
         <tr><td>✅ ss-ret-harman</td><td>하만 전장 디지털 콕핏</td><td>Harman / 하만 / 콕핏 / 전장</td></tr>
@@ -3234,12 +3255,14 @@ def evaluate(case, resp):
         <tr><td>✅ ss-ret-largest</td><td>최대주주 지분 현황</td><td>최대주주</td></tr>
         <tr><td>✅ ss-ret-rnd</td><td>연구개발 실적 비용</td><td>연구개발</td></tr>
         <tr><td>✅ ss-ret-risk</td><td>사업위험 재무위험관리</td><td>위험관리 / 재무위험 / 파생</td></tr>
-        <tr><td>🔶 ss-ret-region</td><td>지역별 매출 미주 유럽</td><td>지역 / 미주 / 유럽 (terse 약점)</td></tr>
+        <tr><td>🆕 ss-ret-fy-shares</td><td>발행주식총수 (FY2024 가드)</td><td>사업연도 필터로 정확 회수 — 접수일 혼동 차단</td></tr>
+        <tr><td>🆕 ss-ret-fy-rnd</td><td>연구개발 비용 (FY2024 가드)</td><td>사업연도 필터로 정확 회수</td></tr>
         <tr><td>✅ hd-ret-business</td><td>주요 사업 자동차 제조</td><td>자동차 / 차량 / 사업의 내용</td></tr>
         <tr><td>✅ hd-ret-dividend</td><td>배당 정책 결산배당</td><td>배당</td></tr>
         <tr><td>✅ hd-ret-rnd</td><td>연구개발 친환경 전동화</td><td>연구개발 / 친환경 / 전동</td></tr>
         </tbody>
       </table>
+      <p class="text-xs text-slate-500">* 06-24 갱신에서 <code>ss-ret-income-revenue</code>·<code>ss-ret-region</code>이 watch에서 must로 승격되고 신규 사업연도 가드 2건이 추가되며 검색 must가 11/11 → 13/13으로 확장. MRR도 0.923 → 0.933으로 개선.</p>
 
       <h4 class="text-base font-semibold text-slate-800 mt-5 mb-2">개발 일지 — eval이 잡은 진짜 버그</h4>
       <p>코드가 지금 모양인 <strong>이유</strong>는 대개 이 버그들에서 왔습니다.</p>
@@ -3302,6 +3325,11 @@ def evaluate(case, resp):
         <tr><td>verifier</td><td>verdict=null로 두고 진행 (사용자에겐 정확도 미표시)</td><td>로그만</td></tr>
         </tbody>
       </table>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">🆕 _ok() 헬퍼 — 조용한 실패 차단 (2026-06-24)</div>
+        <p class="text-sm m-0">기존엔 <code>asyncio.gather(return_exceptions=True)</code>가 예외를 결과 자리에 <code>Exception</code> 객체로 돌려주는데, 후속 코드가 그걸 <strong>조용히 <code>[]</code>로 치환</strong>해서 로그 0건으로 빈 결과를 만들었음. 기간 질의 사고(pydantic §17 #4) 후 <strong><code>_ok(result, label)</code> 헬퍼로 통일</strong> — graceful 동작(빈 리스트 반환)은 유지하되 예외는 반드시 <code>log.warning("retrieve[%s] 실패…")</code>로 남김. 동일 장애가 나면 로그에서 즉시 원인(외부 API/키 등) 파악 가능. 인제스트도 실패 <code>rcept</code>를 모아 종료 시 <code>⚠️ N건 적재 실패</code> 요약 경고 추가.</p>
+      </div>
 
       <h4 class="text-base font-semibold text-slate-800 mt-5 mb-2">디렉토리 구조 — gongsitoktok-pydantic</h4>
       <pre><code class="language-text">app/
@@ -4596,8 +4624,12 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
       <!-- ============ AI 관련 이슈 → 외부 링크 ============ -->
       <div class="callout callout-warn">
         <div class="callout-title">🤖 AI(PydanticAI) 관련 트러블슈팅은 별도 페이지 참조</div>
-        <p class="text-sm m-0">AI 추론 파이프라인(<code>gongsitoktok-pydantic</code>) 자체에서 발생한 이슈 8건(기간 질문 "자료 없음" · 사업연도 vs 접수일 시간축 어긋남 · Chroma <code>$gte/$lte</code> 타입 거부 · 병렬 트랙 필터 누락 · 인제스트 실패 누락 · 검색 엉뚱한 표 상위 · eval 공백 등)은 별도 페이지에서 다룹니다 →
+        <p class="text-sm m-0">AI 추론 파이프라인(<code>gongsitoktok-pydantic</code>) 자체에서 발생한 이슈는 별도 페이지에서 다룹니다 →
         <a href="https://jaymunsh.github.io/sesac-gongsitoktok-pydantic/AI_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%A2%85%ED%95%A9%EC%84%A4%EB%AA%85%EC%84%9C.html#s17" target="_blank" rel="noopener" class="font-semibold underline">📄 공시톡톡 AI 종합 설명서 §17 트러블슈팅</a></p>
+        <ul class="text-sm space-y-1 list-disc ml-4 m-0 mt-2">
+          <li><strong>2026-06-23 발견 8건</strong> — 기간 질문 "자료 없음" · 사업연도 vs 접수일 시간축 어긋남 · Chroma <code>$gte/$lte</code> 타입 거부 · 병렬 트랙 필터 누락 · 인제스트 실패 누락 · 검색 엉뚱한 표 상위 · eval 공백 등 (commit <code>8d5da9c</code> · <code>2424595</code>)</li>
+          <li><strong>2026-06-24 추가 3건</strong> — #9 기수 매핑(<code>fiscal_anchor()</code> 자기수정) · #10 요약 말투 흔들림(<code>_PERSONA</code> 강제) · #11 요약 엉뚱한 섹션 응답(<code>search_summaries</code>를 하이브리드로) — 본 보고서 <a href="#ch-14">시나리오 H·I</a> 및 <a href="#ch-8-7">§8.7 fiscal_anchor</a>·<a href="#ch-8-5">§8.5 사전요약 하이브리드</a>의 근거 (commit <code>af5e28e</code>)</li>
+        </ul>
       </div>
 
       <!-- ============ 교훈 ============ -->
@@ -4632,14 +4664,14 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
     <h2 class="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
       <span class="text-brand-600">🎬</span> 14. Demo Scenarios
     </h2>
-    <p class="text-slate-500 mb-6">시연·심사·인터뷰에서 보여줄 만한 골든 시나리오 7개 — 실제 화면 흐름 step-by-step (v2.0 PydanticAI 기준)</p>
+    <p class="text-slate-500 mb-6">시연·심사·인터뷰에서 보여줄 만한 골든 시나리오 9개 — 실제 화면 흐름 step-by-step (v2.0 PydanticAI · 2026-06-24 기준)</p>
 
     <div class="chapter-card prose-section">
       <p>본 보고서가 다루는 시스템을 처음 보는 사람에게 <strong>5분 안에 가치를 전달</strong>하기 위한 시연용 케이스 모음입니다. 각 시나리오는 <strong>사용자 질문 → 라우터 분기 → 처리 흐름 → 응답 → 화면 효과 → 설계 의도</strong>를 한 카드에 담아 발표·심사 자리에서 그대로 시연 가이드로 활용할 수 있습니다. 스크린샷은 placeholder로 두었으니, 실제 캡처 후 <code>src</code>만 채워 넣으면 됩니다(alt에 어떤 화면을 캡처해야 하는지 명시).</p>
 
       <div class="callout callout-info">
-        <div class="callout-title">🎯 추천 시연 순서 (5~7분)</div>
-        <p class="text-sm m-0"><strong>A → D → B → C → E → F → G</strong> 순서가 자연스럽습니다. <strong>A</strong>(정확수치) → 시스템의 핵심 가치 즉시 전달 → <strong>D</strong>(요약)으로 사전요약 트랙 보여주기 → <strong>B</strong>(거시 결합) → "이런 것도 됨" 임팩트 → <strong>C</strong>(스코프 가드) → "이런 건 차단함" 객관성 → <strong>E</strong>(멀티턴) → 대화 연속성 → <strong>F</strong>(만료·마이페이지) → 라이프사이클 → <strong>G</strong>(에러 모달) → 견고성. 시간 부족 시 <strong>A · D · B</strong> 3개만으로도 핵심 전달 가능(요약 트랙은 v2.0의 큰 차별점).</p>
+        <div class="callout-title">🎯 추천 시연 순서 (5~9분)</div>
+        <p class="text-sm m-0"><strong>A → D → B → H → I → C → E → F → G</strong> 순서가 자연스럽습니다. <strong>A</strong>(정확수치) → 시스템의 핵심 가치 즉시 전달 → <strong>D</strong>(사전요약 요약) → <strong>B</strong>(거시 결합) → "이런 것도 됨" 임팩트 → <strong>H</strong>(기간 질의) + <strong>I</strong>(기수 질의) → <span class="text-brand-700 font-semibold">🆕 한국 공시 특화 강점(접수일 vs 사업연도 시간축, 기수 자동 매핑)</span> → <strong>C</strong>(스코프 가드) → 객관성 → <strong>E</strong>(멀티턴) → 대화 연속성 → <strong>F</strong>(만료) → 라이프사이클 → <strong>G</strong>(에러 모달) → 견고성. 시간 부족 시 <strong>A · D · H</strong> 3개만으로도 핵심 전달 가능(요약 트랙 + 시간축 정합은 v2.0 핵심 차별점).</p>
       </div>
 
       <!-- ============ 시나리오 A: 정확수치 ============ -->
@@ -4741,10 +4773,10 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
         <table class="scen-table">
           <tbody>
           <tr><th>라우터 분기</th><td><span class="intent-tag">intent=summary</span> <code>search_query="사업 내용 반도체 디스플레이"</code>. 재무·거시 플래그 OFF</td></tr>
-          <tr><th>처리 흐름</th><td>corpus·재무·거시 <strong>안 탐</strong>. <code>summary_&lt;corp&gt;</code> 컬렉션에서 <strong>완성 요약 top-8 의미검색</strong>(빌드 시점에 gpt-4o-mini로 섹션 묶음 요약해둠) → <code>summary_agent</code>(gpt-4o-mini)가 요약 조각 종합. 사전요약 없으면 corpus 폴백(보험) — v2.0 시점엔 삼성·현대 모두 빌드됨(1,188 요약)</td></tr>
+          <tr><th>처리 흐름</th><td>corpus·재무·거시 <strong>안 탐</strong>. <code>summary_&lt;corp&gt;</code> 컬렉션에서 <strong>완성 요약 top-8 의미검색</strong>(빌드 시점에 gpt-4o-mini로 섹션 묶음 요약해둠) → <code>summary_agent</code>(gpt-4o-mini)가 요약 조각 종합. <strong>📈 2026-06-24 갱신:</strong> <code>search_summaries</code>가 벡터 단독 → <strong>하이브리드(벡터∪BM25 RRF)</strong>로 변경됨. "주요 사업의 내용" 같은 섹션 어휘 쿼리에서 정확한 청크 회수율이 크게 개선(요약이 엉뚱한 섹션 응답하던 사고 해소). 사전요약 없으면 corpus 폴백(보험) — v2.0 시점엔 삼성·현대 모두 빌드됨(1,188 요약)</td></tr>
           <tr><th>응답 예시</th><td>"삼성전자는 DX(Device eXperience)·DS(Device Solutions)·SDC·Harman 등 부문으로 구성되며, DS 부문은 메모리 반도체(DRAM·NAND)와 시스템LSI·파운드리 사업을, DX 부문은 모바일·VD·생활가전을 담당합니다. Harman 부문은 자동차 전장(디지털 콕핏)을 영위합니다…"</td></tr>
           <tr><th>화면 효과</th><td>답변 말풍선 + <code>?</code> 버튼. 출처 모달엔 <strong>사전요약 조각의 섹션·rcept_no·DART 원문 링크</strong> + 정확도 뱃지(green 또는 amber)</td></tr>
-          <tr><th>설계 의도</th><td><strong>"비싼 요약은 빌드때 1번, 질의땐 꺼내쓰기만"</strong>. 섹션 가중(사업의 내용·MD&amp;A·위험 ↑, 정관·임원명부 ↓) + takeaway 지시("3~6문장, 메타설명 금지"). 효과: 우연히 집힌 5청크가 아니라 섹션 전체를 정성껏 요약 → 품질↑, 매번 LLM 호출 안 함 → 비용↓·속도↑. v1 대비 가장 큰 개선</td></tr>
+          <tr><th>설계 의도</th><td><strong>"비싼 요약은 빌드때 1번, 질의땐 꺼내쓰기만"</strong>. 섹션 가중(사업의 내용·MD&amp;A·위험 ↑, 정관·임원명부 ↓) + takeaway 지시("3~6문장, 메타설명 금지"). 효과: 우연히 집힌 5청크가 아니라 섹션 전체를 정성껏 요약 → 품질↑, 매번 LLM 호출 안 함 → 비용↓·속도↑. v1 대비 가장 큰 개선. 추가로 06-24부터 검색도 하이브리드라 corpus와 동일 정밀도</td></tr>
           <tr><th>회귀 테스트</th><td>v2.0 골든셋 <code>ss-summary-business</code>·<code>ss-summary-overview</code>·<code>hd-summary-business</code>·<code>hd-summary-overview</code> — <code>contains_any: ["반도체", "메모리", "DX", "DS", "하만"]</code>, <code>intent: "summary"</code></td></tr>
           </tbody>
         </table>
@@ -4846,15 +4878,73 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
         </figure>
       </div>
 
+      <!-- ============ 시나리오 H: 기간 질의 (2026-06-24 신규) ============ -->
+      <div class="scenario">
+        <div class="scen-head">
+          <span class="scen-letter">H</span>
+          <span class="scen-title">기간 질의 — 사업연도(bsns_year) 필터로 세 트랙 통합 <span class="text-xs text-slate-400">🆕 2026-06-24</span></span>
+          <span class="chip chip-brand">⭐ 한국 공시 특화</span>
+        </div>
+        <div class="scen-q">"삼성전자 2024년 사업보고서 영업이익 알려줘"</div>
+
+        <table class="scen-table">
+          <tbody>
+          <tr><th>라우터 분기</th><td><span class="intent-tag">intent=qa</span> <span class="intent-tag">financial_relevant=true</span> <span class="intent-tag">bsns_year=2024</span> <code>search_query="영업이익"</code> — "2024년"을 <strong>사업연도</strong>로 파싱</td></tr>
+          <tr><th>처리 흐름</th><td><strong>3중 병렬 + 사업연도 통합 필터</strong> — ⓐ corpus 하이브리드 검색에 <code>where={"bsns_year": 2024}</code> 적용 ⓑ DART 정형재무는 <code>fiscal_year=2024</code>로 호출(데이터 없으면 최신으로 graceful 폴백) ⓒ <code>search_summaries</code>에도 동일 필터 적용. 세 트랙이 <strong>같은 사업연도를 공유</strong>해 한 답변 안에서 연도 어긋남 차단</td></tr>
+          <tr><th>응답 예시</th><td>"삼성전자 <strong>2024년 사업보고서</strong>(제56기) 기준 영업이익은 <strong>6,566,976,000,000원</strong>입니다."<br><span class="text-xs text-slate-500">※ "2024년"은 사업연도 FY2024 = 제56기 (보고서 자체는 2025.03 접수). 접수일이 아닌 사용자 통념 일치</span></td></tr>
+          <tr><th>화면 효과</th><td>답변 말풍선 + <code>?</code> 버튼. 출처 모달의 인용 근거가 <strong>모두 2024년 사업보고서</strong>로 통일됨(혼합된 연도 청크 노이즈 없음). 정확도 뱃지 green</td></tr>
+          <tr><th>설계 의도</th><td>v1·초기 v2에선 기간을 <strong>접수일</strong>(<code>rcept_dt</code>) 기준으로 걸렀는데, 사업보고서는 해당 사업연도 다음 해 3월경 제출이라 사용자 통념과 한 해 어긋남 사고가 발생(pydantic §17 #2). <strong>06-24 fix</strong> — <code>report_nm</code>에서 사업연도 정규식 파싱해 <code>bsns_year</code>(int) 메타로 저장, 모든 트랙이 동일 필터 공유. 한국 공시 도메인의 시간축 비대칭을 코드로 해소한 케이스</td></tr>
+          <tr><th>회귀 테스트</th><td>v2.0 골든 <code>ss-fy-financial</code>(제55기 영업이익 6,566,976 확인) · <code>ss-period-shares</code>(행동) · 검색 가드 <code>ss-ret-fy-shares</code>/<code>-rnd</code></td></tr>
+          </tbody>
+        </table>
+
+        <figure class="shot placeholder">
+          <span class="ph-icon">📸</span>
+          <div class="ph-body">
+            <div class="ph-title">스크린샷 가이드 — alt:</div>
+            <div class="ph-alt">삼성전자 CompanyPage 챗봇 패널. 사용자 질문("삼성전자 2024년 사업보고서 영업이익 알려줘") 아래 AI 답변("2024년 사업보고서(제56기) 기준 영업이익은 6,566,976,000,000원입니다."). <strong>출처 모달이 열려 있어 인용 근거의 <code>reportNm</code>이 모두 "사업보고서 (2024.12)"로 통일됨</strong>이 시각적으로 강조. 우측 하단 정확도 뱃지 green. 비교를 위해 "영업이익 알려줘"(연도 무지정, 시나리오 A) 답변과 나란히 보여주면 임팩트 최대.</div>
+          </div>
+        </figure>
+      </div>
+
+      <!-- ============ 시나리오 I: 기수 질의 (2026-06-24 신규) ============ -->
+      <div class="scenario">
+        <div class="scen-head">
+          <span class="scen-letter">I</span>
+          <span class="scen-title">기수 질의 — fiscal_anchor()로 제N기 ↔ 사업연도 자동 매핑 <span class="text-xs text-slate-400">🆕 2026-06-24</span></span>
+          <span class="chip chip-brand">⭐ 한국 공시 특화</span>
+        </div>
+        <div class="scen-q">"삼성전자 제57기말 자기주식 알려줘" 또는 "삼성 제56기 영업이익"</div>
+
+        <table class="scen-table">
+          <tbody>
+          <tr><th>라우터 분기</th><td><span class="intent-tag">intent=qa</span> <span class="intent-tag">financial_relevant=true</span> <code>search_query="자기주식"</code> + <strong>기수 표현 감지</strong> → <code>fiscal_anchor()</code> 호출로 "제57기" → <code>bsns_year</code>로 변환</td></tr>
+          <tr><th>처리 흐름</th><td><code>fiscal_anchor()</code>가 <strong>DART 정형재무의 <code>thstrm_nm</code>(예: "제 57 기")에서 기수↔사업연도 매핑을 추출·캐시</strong>. 회사별로 결산월이 달라 매핑이 다르지만, <strong>하드코딩 없이 회사 추가만으로 자동 적용</strong>. 매핑된 사업연도를 corpus·재무·요약 세 트랙에 동일 적용 → 시나리오 H와 같은 흐름. 기수 표현이 있을 때만 힌트 주입 (서력연도 질문은 그대로 시나리오 H 흐름)</td></tr>
+          <tr><th>응답 예시</th><td>"삼성전자 <strong>제57기말</strong>(2025 사업연도) 자기주식은 12,345,678주(보통주)입니다. (출처: 2025 사업보고서 주요계정)"</td></tr>
+          <tr><th>화면 효과</th><td>답변에 사용자가 입력한 <strong>기수 표현이 그대로 보존</strong>("제57기말") + 출처 모달엔 매핑된 사업연도 보고서 인용. 사용자가 입력한 표현과 답변·출처 사이 정합</td></tr>
+          <tr><th>설계 의도</th><td>"제57기" 같은 기수는 한국 공시에서만 쓰는 표현이라 외산 RAG 챗봇은 못 다룸. 초기 v2는 라우터가 서력연도만 인식해 기수 질의 시 필터 미적용 → 오답 사고가 있었음(pydantic §17 #9). <strong>06-24 fix</strong> — DART 정형재무 응답에 이미 들어있는 <code>thstrm_nm</code>을 활용해 <strong>코드 변경 없이 회사 추가만으로 매핑 확장</strong>. 회사별 결산월 차이도 자동 흡수</td></tr>
+          <tr><th>회귀 테스트</th><td>v2.0 골든 <code>ss-gisu-shares</code> — "제57기말" 기수 매핑으로 자기주식 정확수치 회수</td></tr>
+          </tbody>
+        </table>
+
+        <figure class="shot placeholder">
+          <span class="ph-icon">📸</span>
+          <div class="ph-body">
+            <div class="ph-title">스크린샷 가이드 — alt:</div>
+            <div class="ph-alt">삼성전자 CompanyPage 챗봇 패널. 사용자 질문("삼성전자 제57기말 자기주식 알려줘") 아래 AI 답변("제57기말(2025 사업연도) 자기주식은 …주입니다."). <strong>답변에 사용자 입력 기수 표현이 그대로 보존</strong>됨이 핵심. 출처 모달엔 매핑된 사업연도 보고서(예: "2025 사업보고서 주요계정") 인용. 정확도 뱃지 green.</div>
+          </div>
+        </figure>
+      </div>
+
       <!-- ============ 시연 운영 팁 ============ -->
       <div class="callout callout-tip">
         <div class="callout-title">🎤 시연 운영 팁</div>
         <ul class="text-sm space-y-1 list-disc ml-4 m-0">
-          <li><strong>사전 워밍업</strong> — 시연 5분 전 시나리오 A 한 번 실행해 코퍼스·임베딩·DART API·BM25 인덱스 캐시 hit 상태로 만들기 (cold start 시 첫 응답이 느림)</li>
+          <li><strong>사전 워밍업</strong> — 시연 5분 전 시나리오 A 한 번 실행해 코퍼스·임베딩·DART API·BM25 인덱스 캐시 hit 상태로 만들기 (cold start 시 첫 응답이 느림). <strong>06-24 메타 마이그레이션 적용 후엔 uvicorn 1회 재시작 필수</strong>(BM25 인메모리 캐시 옛 메타 들고 있음)</li>
           <li><strong>X-Trace-Id 라이브 보여주기</strong> — DevTools Network 탭 열어둔 채 시연하면 요청·응답 헤더의 <code>X-Trace-Id</code>가 한 ID로 전 구간 추적되는 모습 노출. v2.0은 Logfire 콘솔에서도 같은 traceId로 router→writer→verifier 자식 span timeline까지 확인 가능</li>
           <li><strong>출처 모달은 매번 열기</strong> — "AI 답변에 항상 출처가 있다"가 시스템의 가장 큰 강점. 시연마다 <code>?</code> 버튼 클릭 → DART 원문 링크까지 클릭하면 임팩트 최대</li>
           <li><strong>실패 케이스도 미리 보여주기</strong> — 시나리오 C(스코프 가드)·G(에러 모달)는 "방어 메커니즘이 작동함"을 강조. 정상 시나리오만 보이면 평범해 보임</li>
-          <li><strong>v2.0 차별점 강조</strong> — 시나리오 D(사전요약 트랙)는 v1 실시간 RAG 대비 응답 속도·품질 모두 개선됨. 시연에서 시간 측정 가능하면 더 좋음</li>
+          <li><strong>v2.0 차별점 강조</strong> — 시나리오 D(사전요약 트랙)·H(기간 질의)·I(기수 질의)는 모두 06-23~06-24에 다듬어진 한국 공시 특화 강점. 시간 측정 가능하면 더 좋음</li>
           <li><strong>가상 스레드 트래이싱</strong> — Spring 부팅 시 <code>-Djdk.tracePinnedThreads=short</code> 옵션 켜면 콘솔에서 BCrypt 같은 pin 케이스가 노출 안 됨을 시연 가능(이미 격리됨)</li>
         </ul>
       </div>
@@ -4862,7 +4952,7 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
       <!-- ============ eval 연결 ============ -->
       <div class="callout callout-info">
         <div class="callout-title">🔁 자동 회귀 — 위 시나리오가 어떻게 골든셋과 연결되나</div>
-        <p class="text-sm m-0">위 7개 시나리오 중 A·B·C·D·E는 <strong>v2.0의 3계층 eval과 1:1 매핑</strong>됩니다(<code>gongsitoktok-pydantic/eval/</code>). 골든 14건(must 12/12)·행동 8건(must 6/6)·검색 13건(must 11/11 hit@5 100%·MRR 0.923) — 사람이 시연하지 않아도 자동 회귀로 같은 케이스가 검증됩니다. F·G는 Spring 통합 테스트(R4 — 운영 진입 전 작성 권장)로 커버 예정. <strong>"시연 케이스 = 회귀 케이스" 정합</strong>이 v2.0에서 강화됐고 v3.0에서 더 확장 예정. 자세한 기준·결과는 <a href="#ch-8-8">§8.8 3계층 eval</a>.</p>
+        <p class="text-sm m-0">위 9개 시나리오 중 A·B·C·D·E·H·I는 <strong>v2.0의 3계층 eval과 1:1 매핑</strong>됩니다(<code>gongsitoktok-pydantic/eval/</code>). 골든 16건(must 16/16)·행동 8건(must 6/6)·검색 13건(must 13/13 hit@5 100%·MRR 0.933) — 2026-06-24 기준. 사람이 시연하지 않아도 자동 회귀로 같은 케이스가 검증됩니다. F·G는 Spring 통합 테스트(R4 — 운영 진입 전 작성 권장)로 커버 예정. <strong>"시연 케이스 = 회귀 케이스" 정합</strong>이 v2.0에서 강화됐고 v3.0에서 더 확장 예정. 자세한 기준·결과는 <a href="#ch-8-8">§8.8 3계층 eval</a>.</p>
       </div>
 
       <div class="callout callout-note">

@@ -4618,7 +4618,7 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
 
       <!-- ============ 그룹 4: 챗봇 UX·안전성 ============ -->
       <details class="tgroup">
-        <summary>💬 그룹 4 — 챗봇 UX·안전성 (9건)</summary>
+        <summary>💬 그룹 4 — 챗봇 UX·안전성 (11건, 마지막 8건은 2026-06-24 추가)</summary>
 
         <div class="tnote">
           <p class="sym"><span class="num">11.</span>챗봇 호출 전용 axios 인스턴스 분리 — 페이지 이동 절대 금지 + 95초 timeout<span class="badge badge-feat">✨ FEATURE</span><span class="ts">📅 2026-06-19 22:44</span></p>
@@ -4694,6 +4694,22 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
           <p class="cause"><span class="lc">원인</span> 헤더의 기존 "새 채팅" 버튼(<code>handleNewChatConfirm</code>)은 <code>closeRoom</code> API로 서버측 방을 닫고 → <code>onStartFresh</code>로 클라이언트 세션 리셋하는 2단계 흐름이지만, 새로 만든 만료 모달의 "새 채팅 시작"은 <code>onStartFresh</code>만 호출.</p>
           <p class="fix"><span class="lf">해결</span> <code>handleExpireStartFresh</code>를 async로 바꾸고 헤더 흐름과 동일하게 <code>closeMutation.mutateAsync(roomId)</code> 호출 후 <code>onStartFresh</code>. 410 등 서버측이 이미 닫은 케이스는 close 호출이 에러로 떨어져도 try/catch로 무시(close 자체가 멱등이라 안전 — <a href="#ch-13">카드 8</a> <code>isActive</code> 정책 참조). mutation 진행 중에는 세 액션 버튼 모두 disabled + "준비 중..." 로딩 라벨.</p>
           <p class="meta">📍 프론트 단독 · <code>src/components/ChatPanel.tsx</code>의 <code>handleExpireStartFresh</code> · troubleshooting.md #6 · 2026-06-24</p>
+        </div>
+
+        <div class="tnote">
+          <p class="sym"><span class="num">🆕</span>만료 모달 "그냥 닫기" 후 챗봇 다시 열면 정상 세션처럼 마운트됨<span class="badge badge-bug">🐛 BUG</span><span class="ts">📅 2026-06-24</span></p>
+          <p class="cause"><span class="lc">증상</span> 30분 만료 모달에서 <strong>"그냥 닫기"</strong> 클릭 → 채팅 패널이 닫힘. 다시 "무엇이든 물어보세요" 버튼을 누르면 <strong>정상 세션인 것처럼 fresh 채팅 패널이 마운트</strong>됨. 질문을 입력하면 그제서야 서버가 410 반환 → 만료 모달이 다시 뜸. 사용자 입장: "왜 방금 멀쩡해 보였는데?" 혼란.</p>
+          <p class="cause"><span class="lc">원인</span> "그냥 닫기" 핸들러(<code>handleExpireDismiss</code>)가 <code>onExpire?.()</code>를 호출하고, <code>CompanyPage</code>의 <code>onExpire</code> 매핑이 <code>handleCloseChat</code> — 즉 <strong>단순 패널 닫기</strong>. 만료 상태를 가리키는 <code>isExpiredMode</code> state는 그대로 false 유지. 따라서 다시 챗봇을 열 때 ChatPanel이 <code>isExpired={false}</code>로 마운트되어 정상 세션 UI로 노출됨.</p>
+          <p class="fix"><span class="lf">해결</span> <code>CompanyPage</code>에 신규 핸들러 <code>handleExpireDismiss</code> 추가 — <strong><code>setIsExpiredMode(true)</code></strong>(핵심) + <code>closeChat()</code> + <code>setIsFullscreen(false)</code>. 세 ChatPanel 인스턴스의 <code>onExpire</code>를 <code>handleCloseChat</code> → <code>handleExpireDismiss</code>로 교체. 다시 챗봇 버튼 누르면 <code>isExpired={true}</code>로 마운트 → 기존 만료 배너 + 입력 disabled UI 재사용(만료된 URL로 직접 진입한 케이스와 동일 코드 경로). 만료 모달은 <code>lastNotifiedActiveAtRef</code> 가드(카드 18)로 같은 <code>lastActiveAt</code>에 대해 다시 뜨지 않음.</p>
+          <p class="meta">📍 프론트 단독 · <code>src/pages/CompanyPage.tsx</code>의 <code>handleExpireDismiss</code> + 3개 <code>onExpire</code> 매핑 교체 · troubleshooting.md #9 · 2026-06-24</p>
+        </div>
+
+        <div class="tnote">
+          <p class="sym"><span class="num">🆕</span>"새 채팅 시작" 직후 옛 만료 채팅이 살아 돌아오는 경합 — invalidate 시점 race<span class="badge badge-bug">🐛 BUG</span><span class="ts">📅 2026-06-24</span></p>
+          <p class="cause"><span class="lc">증상</span> 만료 모달의 "새 채팅 시작" 또는 헤더 "새 채팅" 버튼 클릭 후, <strong>잠깐 깨끗해졌다가 옛(만료된) 채팅 내용이 다시 나타나는</strong> 경우. 흔하진 않지만 close API 호출이 실패한 케이스나 백엔드 read-after-write 지연이 있을 때 재현 가능.</p>
+          <p class="cause"><span class="lc">원인</span> <code>handleStartFresh</code>가 <code>closeMutation</code> 후 <code>invalidateQueries(['activeRoom'])</code>만 호출. <strong>invalidate는 refetch 트리거 신호일 뿐 캐시값을 즉시 비우지 않음</strong>. ① close 실패 → catch로 넘어가도 <code>onStartFresh</code>는 진행(의도된 디자인) → invalidate 후 refetch가 옛 만료 방을 그대로 반환 → <code>roomEnvelope</code>도 다시 받아옴 → <code>serverMessages.length &gt; localMessages.length(=0)</code> 조건에 걸려 hydrate가 옛 메시지 복원 + <code>isExpiredMode=true</code> 설정. ② close 성공해도 백엔드 read-replica 지연으로 직후 <code>getActiveRoom</code>이 옛 방을 잠깐 더 반환할 가능성.</p>
+          <p class="fix"><span class="lf">해결</span> <code>handleStartFresh</code>에서 invalidate 직전에 <code>setQueryData</code>로 캐시를 <strong>명시적으로 null로 박음</strong> — <code>queryClient.setQueryData(['activeRoom', corpCode], null)</code> + <code>removeQueries({queryKey: ['roomEnvelope']})</code> + <code>invalidateQueries({queryKey: ['activeRoom', corpCode]})</code>. hydrate effect가 즉시 null 분기로 진입해 깨끗한 빈 상태 진입 → 이후 refetch가 백엔드 사실로 자가복구. close가 정말 실패해서 방이 살아있으면 다음 focus 등에서 보일 수 있지만 그건 백엔드 사실의 정직한 반영이라 무해. 같은 함수가 헤더 "새 채팅" + 만료 모달 + 만료 배너 3개 진입점을 모두 처리하므로 한 곳 수정으로 전체 적용.</p>
+          <p class="meta">📍 프론트 단독 · <code>src/pages/CompanyPage.tsx</code>의 <code>handleStartFresh</code> · troubleshooting.md #10 · 2026-06-24</p>
         </div>
       </details>
 

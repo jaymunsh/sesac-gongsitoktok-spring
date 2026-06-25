@@ -465,8 +465,100 @@
       background: #f1f5f9; color: #15803d; padding: 0.1rem 0.4rem; border-radius: 0.25rem; margin-right: 0.3rem;
     }
 
+    /* 모바일 — 햄버거 토글 + 사이드바 슬라이드 + 표 가로 스크롤 */
+    .mobile-menu-btn {
+      display: none;
+      position: fixed;
+      top: 0.875rem;
+      left: 0.875rem;
+      z-index: 50;
+      width: 2.75rem;
+      height: 2.75rem;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: #334155;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+      transition: color 0.15s, transform 0.15s;
+    }
+    .mobile-menu-btn:hover { color: #15803d; }
+    .mobile-menu-btn:active { transform: scale(0.96); }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      z-index: 40;
+      animation: lbFade 0.15s ease-out;
+    }
+    .sidebar-overlay.active { display: block; }
+
+    @media (max-width: 1023px) {
+      .mobile-menu-btn { display: inline-flex; }
+
+      aside {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 45;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+      }
+      aside.open { transform: translateX(0); }
+
+      main {
+        margin-left: 0 !important;
+        max-width: 100% !important;
+        padding: 4.5rem 1.25rem 3rem !important;
+      }
+
+      /* 표 가로 스크롤 */
+      .report-table, .scen-table {
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+      }
+      .report-table thead, .report-table tbody,
+      .scen-table thead, .scen-table tbody {
+        display: table;
+        min-width: 100%;
+      }
+      .report-table tr, .scen-table tr { display: table-row; }
+      .report-table th, .report-table td,
+      .scen-table th, .scen-table td { display: table-cell; }
+
+      /* 시나리오 좌측 라벨 축소 */
+      .scenario { padding: 1rem 1.125rem; }
+      .scenario table.scen-table th { width: 80px; font-size: 0.78rem; padding: 0.4rem 0.5rem; }
+      .scenario table.scen-table td { padding: 0.4rem 0.55rem; }
+
+      /* 헤더 chip wrap */
+      header .flex-wrap { gap: 0.4rem; }
+
+      /* mermaid·chapter-card 내부 패딩 축소 */
+      .chapter-card { padding: 1rem 1.125rem; }
+      .mermaid-card { padding: 0.875rem; }
+
+      /* 라이트박스 모바일 — wrap 자체 사이즈 명시 (90vw 그대로) */
+      .lightbox-overlay { padding: 1.5rem 0.75rem; }
+    }
+
+    @media (max-width: 640px) {
+      .scenario table.scen-table th { width: 70px; font-size: 0.72rem; }
+      main { padding: 4.25rem 0.875rem 2.5rem !important; }
+      header h1 { font-size: 1.75rem; }
+      .mobile-menu-btn { top: 0.625rem; left: 0.625rem; }
+      h2.text-3xl { font-size: 1.5rem !important; }
+      h3.text-xl { font-size: 1.125rem !important; }
+    }
+
     /* 인쇄 CSS */
     @media print {
+      .mobile-menu-btn, .sidebar-overlay { display: none !important; }
       aside, .no-print, .search-input { display: none !important; }
       main { margin-left: 0 !important; max-width: 100% !important; padding: 0 !important; }
       .chapter-card { box-shadow: none !important; border: none !important; page-break-inside: avoid; padding: 0 !important; }
@@ -484,6 +576,10 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-700 antialiased">
+
+<!-- ============ 모바일 햄버거 + 오버레이 ============ -->
+<button class="mobile-menu-btn no-print" id="mobileMenuBtn" aria-label="목차 열기">☰</button>
+<div class="sidebar-overlay no-print" id="sidebarOverlay"></div>
 
 <!-- ============ 사이드바 ============ -->
 <aside class="fixed top-0 left-0 h-screen overflow-y-auto bg-white border-r border-slate-200 px-4 py-6 no-print" style="width: var(--sidebar-w)">
@@ -5421,6 +5517,60 @@ http://localhost:8000/docs          # Swagger UI</code></pre>
 
         open(wrap, '📊 다이어그램 확대');
       }
+    });
+  })();
+</script>
+
+<script>
+  // 모바일 햄버거 토글 — 사이드바 슬라이드 인/아웃
+  (function setupMobileMenu() {
+    const btn = document.getElementById('mobileMenuBtn');
+    const overlay = document.getElementById('sidebarOverlay');
+    const aside = document.querySelector('aside');
+    if (!btn || !overlay || !aside) return;
+
+    function open() {
+      aside.classList.add('open');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      btn.setAttribute('aria-label', '목차 닫기');
+      btn.textContent = '✕';
+    }
+    function close() {
+      aside.classList.remove('open');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+      btn.setAttribute('aria-label', '목차 열기');
+      btn.textContent = '☰';
+    }
+    function toggle() {
+      if (aside.classList.contains('open')) close();
+      else open();
+    }
+
+    btn.addEventListener('click', toggle);
+    overlay.addEventListener('click', close);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && aside.classList.contains('open')) close();
+    });
+
+    // 사이드바 nav-link 클릭 시 모바일에선 자동 닫기 (앵커 이동 후)
+    aside.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        if (window.matchMedia('(max-width: 1023px)').matches) {
+          setTimeout(close, 120);
+        }
+      });
+    });
+
+    // 데스크탑 폭으로 resize되면 자동 닫기 (상태 정리)
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (window.innerWidth >= 1024 && aside.classList.contains('open')) close();
+      }, 150);
     });
   })();
 </script>
